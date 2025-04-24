@@ -1061,32 +1061,28 @@ export default function App() {
         (Math.abs(selectedCell.col - col) === 1 && selectedCell.row === row);
       
       if (isAdjacent) {
-        // 相邻方块，尝试交换
-        // 减少移动次数
-        setMoves(prev => prev - 1);
-        
+        // 相邻方块，允许交换
         // 交换单元格
         const newBoard = JSON.parse(JSON.stringify(board));
         const temp = newBoard[selectedCell.row][selectedCell.col];
         newBoard[selectedCell.row][selectedCell.col] = newBoard[row][col];
         newBoard[row][col] = temp;
-        
+
         // 先更新棋盘展示交换效果
         setBoard(newBoard);
-        
-        // 检查交换后是否有匹配
+
+        // 扣除步数
+        setMoves(prev => prev - 1);
+
         setTimeout(() => {
           const matches = findMatches(newBoard);
-          
           if (matches.length > 0) {
             // 有匹配，消除并填充
             let currentBoard = clearMatches(newBoard, matches);
             setBoard(currentBoard);
-            
             // 添加得分
             const matchesPoints = matches.length * 10;
             setScore(prev => prev + matchesPoints);
-            
             // 添加得分弹窗
             if (matches.length > 0) {
               const firstMatch = matches[0][0];
@@ -1098,31 +1094,22 @@ export default function App() {
                 }]);
               }
             }
-            
             // 延迟填充以显示消除动画
             setTimeout(() => {
               const filledBoard = fillEmptyCells(currentBoard, fieldIcons);
               setBoard(filledBoard);
-              
               // 递归检查是否还有新的匹配产生
               setTimeout(() => {
                 checkForCascadingMatches(filledBoard);
               }, 300);
             }, 300);
-          } else {
-            // 没有匹配，交换回来
-            const revertedBoard = JSON.parse(JSON.stringify(newBoard));
-            const temp = revertedBoard[selectedCell.row][selectedCell.col];
-            revertedBoard[selectedCell.row][selectedCell.col] = revertedBoard[row][col];
-            revertedBoard[row][col] = temp;
-            setBoard(revertedBoard);
           }
-          
+          // 没有匹配，不做任何处理，棋盘保持交换后的状态
+          // 不再交换回来
           // 检查是否游戏结束
-          if (moves <= 0) {
+          if (moves - 1 <= 0) {
             setGameOver(true);
           }
-          
           // 重置选中的单元格
           setSelectedCell(null);
         }, 200);
