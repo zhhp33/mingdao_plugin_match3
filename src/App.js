@@ -308,11 +308,8 @@ export default function App() {
   
   // 初始化时，根据配置设置紧凑模式
   useEffect(() => {
-    // 行高模式: "0" 为紧凑模式，"1" 为自适应模式
-    const compactMode = rowHeightMode !== "1";
-    setIsCompactMode(compactMode);
-    console.log("行高模式:", rowHeightMode, "紧凑模式:", compactMode);
-  }, [rowHeightMode]);
+    setIsCompactMode(true); // 默认紧凑模式
+  }, []);
   
   // 从本地存储加载最高分
   useEffect(() => {
@@ -1067,10 +1064,10 @@ export default function App() {
         const temp = newBoard[selectedCell.row][selectedCell.col];
         newBoard[selectedCell.row][selectedCell.col] = newBoard[row][col];
         newBoard[row][col] = temp;
-
+        
         // 先更新棋盘展示交换效果
         setBoard(newBoard);
-
+        
         // 扣除步数
         setMoves(prev => prev - 1);
 
@@ -1191,71 +1188,44 @@ export default function App() {
   const handleCellDoubleClick = (row, col) => {
     try {
       if (gameOver || !board || !board[row] || !board[row][col] || board[row][col].isEmpty) return;
-      
       const cell = board[row][col];
       if (!cell || !cell.icon) return;
-      
-      // 没有记录则无法打开
-      if (!records || records.length === 0) {
-        console.warn("没有可用的记录数据");
-        return;
-      }
-      
-      // 获取方块对应的字段信息
+      if (!records || records.length === 0) return;
       const fieldInfo = cell.icon;
-      
-      if (fieldInfo.fieldId) {
-        // 尝试查找包含该字段的第一条记录
-        let foundRecord = null;
-        try {
-          for (const record of records) {
-            if (record && record[fieldInfo.fieldId]) {
+      // 精确查找：字段值与格子值完全相等的那条记录
+      let foundRecord = null;
+      for (const record of records) {
+        if (!fieldInfo.fieldId) continue;
+        // 兼容对象/选项/图片/文件等类型，使用JSON.stringify做深度比较
+        if (record[fieldInfo.fieldId] !== undefined) {
+          try {
+            if (JSON.stringify(record[fieldInfo.fieldId]) === JSON.stringify(fieldInfo.value)) {
               foundRecord = record;
               break;
             }
-          }
-        } catch (e) {
-          console.error("查找记录时出错:", e);
-        }
-        
-        if (foundRecord) {
-          // 找到对应记录，打开它
-          try {
-            utils.openRecordInfo({
-                  appId,
-                  worksheetId,
-                  viewId,
-              recordId: foundRecord.rowid
-            });
-            return;
-          } catch (e) {
-            console.error("打开记录失败:", e);
-          }
+          } catch (e) {}
         }
       }
-      
-      // 如果没有找到对应的记录，则打开第一条记录
-      if (records && records.length > 0) {
-        const firstRecord = records[0];
-        
-        if (firstRecord && firstRecord.rowid) {
-          try {
-            // 打开记录详情
-            utils.openRecordInfo({
-                        appId,
-                        worksheetId,
-              viewId,
-              recordId: firstRecord.rowid
-            });
-          } catch (e) {
-            console.error("打开第一条记录失败:", e);
-          }
-        } else {
-          console.warn("第一条记录无效");
-        }
+      if (foundRecord && foundRecord.rowid) {
+        utils.openRecordInfo({
+          appId,
+          worksheetId,
+          viewId,
+          recordId: foundRecord.rowid
+        });
+        return;
+      }
+      // 没找到则打开第一条
+      if (records && records.length > 0 && records[0].rowid) {
+        utils.openRecordInfo({
+          appId,
+          worksheetId,
+          viewId,
+          recordId: records[0].rowid
+        });
       }
     } catch (error) {
-      console.error("处理双击事件时出错:", error);
+      // 忽略异常
     }
   };
   
